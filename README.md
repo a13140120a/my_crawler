@@ -96,3 +96,27 @@ li = pq(res.text)('li')
 #print(li.text())
 #print(doc('li').eq(2))
 ```
+
+圖片下載範例:
+```js
+from urllib import request #可以下載圖片
+
+ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/84.0.4147.89 Safari/537.36'
+
+header = {'User-Agent':ua}
+
+url = 'https://pgw.udn.com.tw/gw/photo.php?u=https://uc.udn.com.tw/photo/2020/06/09/99/8004813.jpg'
+
+try:
+    request.urlretrieve(url, './456.jpg')  #左邊接url 右邊接放置路徑
+except Exception as e:
+    print(e)
+
+#方法2
+# try:
+#     with open("./123.jpg","wb") as f:
+#         urlres = requests.get(url,headers = header)#記得requests有s
+#         f.write(urlres.content)
+# except Exception as e:
+#     print(e)
+```
