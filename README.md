@@ -67,3 +67,32 @@ for i in soup.select('b[style="font"] > span'):
 print(soup.select('script')[0]['type'])
 
 ```
+
+pyquery:
+```js
+
+doc = pq(res.text)
+a = pq(res.text)('a')  #doc('a')
+
+#-------------------找到所有a節點的href屬性(none也會印出來)-----
+#print(a.items())
+m = []
+for item in a.items():
+    print(item.attr('href'))
+    m.append(item.attr('href'))
+    #print(item.add_class('addclass'))  #新增屬性class="addclass"  (用途不明)
+print(m)
+#print(type(m[0]))
+
+#----------------------------把所有節點變成字串----------------------------------
+print(a.text())
+
+
+#-------------使用.(class)和#(id)來查找節點-----------------------------------------
+#print(doc('.step'))
+#print(doc('.step').text())    #加.text() 去標籤
+
+li = pq(res.text)('li')
+#print(li.text())
+#print(doc('li').eq(2))
+```
