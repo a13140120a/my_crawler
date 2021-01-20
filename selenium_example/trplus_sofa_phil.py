@@ -11,16 +11,99 @@ folder=r'./trplus_sofa'
 if not os.path.exists(folder):
     os.mkdir(folder)
 
+headers = {
+    "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36'
+}
+ss = requests.session()
 
+links_xpath = "//div[@id='ProductListSlot']//a[@class='text-secondary gtmImpressions_prod-URL']"
+img_xpath = "//div[@class='col-lg-6 photos']/input/@value"
+size_content_xpath = "//div[@class='detail-two  product-list__box collapse']//text()"
+price_xpath = "//td[@class='prodinfo-mobile-cost-no']/text()"
+contents_xpath = "//div[@class='detail-one product-list__box collapse show']//text()"
+title_name_xpath = "//div[@class='info__name prod_GDNM']/text()"
+id_xpath = "//font[@class='sku prod_GDID']/text()"
 
 def get_HTML(url):
-    headers = {
-        "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.83 Safari/537.36'
-    }
-    ss = requests.session()
     res = ss.get(url=url, headers=headers)
-    get_html = etree.HTML(res.text)   # 利用etree.HTML把字串解析成HTML文件
+    get_html = etree.HTML(res.text)
     return get_html
+
+def get_title_name(html):
+    title_name = html.xpath(title_name_xpath)[0]
+    return title_name
+
+def get_imgList(html):
+    imgs = html.xpath(img_xpath)
+    img_list = []
+    return [img for img in imgs]
+
+def get_size(html):
+    # 商品尺寸(無法抓取準確數值)
+    size_content = html.xpath(size_content_xpath)
+    words = ['CM','*','公分','cm','長','寬','高']
+    size = [*filter(lambda x: any(word in x for word in words),size_content)]
+    return size
+
+def get_color(html):
+    size_content = html.xpath(size_content_xpath)
+    title_name = html.xpath(title_name_xpath)[0]
+    all_color = []
+    if '多' not in title_name:
+        try:
+            for c in size_content:
+                if '顏色:' not in c.strip():
+                    color = c.strip().split('：')[1]
+                    all_color.append(color)
+                elif '顏色：' not in c.strip():
+                    color = c.strip().split('：')[1]
+                    all_color.append(color)
+        except:
+            pass
+    else:
+        try:
+            color = title_name.split('-')[1].split('色')[0] + '色'
+            all_color.append(color)
+        except:
+            pass
+    return all_color
+
+def get_price(html):
+    price = html.xpath(price_xpath)[0].strip()
+    return price
+
+def get_id(html):
+    id = html.xpath(id_xpath)[0]
+    return id
+
+# 內文 Details
+def get_details(html):
+    details = []
+    contents = html.xpath(contents_xpath)
+    for content in contents:
+        if content.strip() == '':
+            pass
+        elif '品牌故事' in content.strip():
+            break
+        elif '注意事項' in content.strip():
+            break
+        else:
+            details.append(content.strip())
+    return details
+
+def try_write_to_json(trplus_json):
+    title_id = trplus_json.get('id')
+    try:
+        with open(folder + '/{}.json'.format(title_id), 'w', encoding='utf-8') as f:
+            json.dump(trplus_json, f, ensure_ascii=False)
+            print('done!')
+    except FileNotFoundError:
+        with open(folder + '/{}.json'.format(title_id.replace('/', '-')), 'w', encoding='utf-8') as f:
+            json.dump(trplus_json, f, ensure_ascii=False)
+            print('done!')
+    except:
+        pass
+
 
 def Get_Data():
     options = webdriver.ChromeOptions()
@@ -29,11 +112,11 @@ def Get_Data():
 
     page = 0
     while True:
-
         tmp_url = 'https://www.trplus.com.tw/TR_Furniture/c/EC_10000011?page={}'
         url = tmp_url.format(page)
         browser.get(url)
-        links = browser.find_elements_by_xpath("//div[@id='ProductListSlot']//a[@class='text-secondary gtmImpressions_prod-URL']")
+
+        links = browser.find_elements_by_xpath(links_xpath)
         print("link:",links)
 
         if links == []:
@@ -43,12 +126,9 @@ def Get_Data():
             browser = webdriver.Chrome(chrome_options=options, executable_path='./chromedriver')
             time.sleep(random.uniform(10, 15))
 
-            tmp_url = 'https://www.trplus.com.tw/TR_Furniture/c/EC_10000011?page={}'
             url = tmp_url.format(page)
             browser.get(url)
-            links = browser.find_elements_by_xpath("//div[@id='ProductListSlot']//a[@class='text-secondary gtmImpressions_prod-URL']")
-
-
+            links = browser.find_elements_by_xpath(links_xpath)
 
         for link in links:
 
@@ -58,114 +138,34 @@ def Get_Data():
 
             # 標題名稱
             try:
-                title_name = get_HTML(content_url).xpath("//div[@class='info__name prod_GDNM']/text()")
-                title_name = title_name[0]
-                #print(title_name)
-
-                # 照片
-                imgs = get_HTML(content_url).xpath("//div[@class='col-lg-6 photos']/input/@value")
-                img_list = []
-                for img in imgs:
-                    img_list.append(img)
-                #print('imgs done!!')
-                # 商品尺寸(無法抓取準確數值)
-                size_content = get_HTML(content_url).xpath("//div[@class='detail-two  product-list__box collapse']//text()")
-                size = []
-                for s in size_content:
-                    #print (s.strip())
-                    if s.strip().find('CM') != -1:
-                        size.append(s.strip())
-                    elif s.strip().find('*') != -1:
-                        size.append(s.strip())
-                    elif s.strip().find('公分') != -1:
-                        size.append(s.strip())
-                    elif s.strip().find('cm') != -1:
-                        size.append(s.strip())
-                    elif s.strip().find('長') != -1:
-                        size.append(s.strip())
-                    elif s.strip().find('寬') != -1:
-                        size.append(s.strip())
-                    elif s.strip().find('高') != -1:
-                        size.append(s.strip())
-
-                all_color = []
-                if title_name.find('多') != -1:
-                    try:
-                        for c in size_content:
-                            if c.strip().find('顏色:') != -1:
-                                color = c.strip().split('：')[1]
-                                all_color.append(color)
-                            elif c.strip().find('顏色：') != -1:
-                                color = c.strip().split('：')[1]
-                                all_color.append(color)
-                    except:
-                        pass
-
-                else:
-                    try:
-                        color = title_name.split('-')[1].split('色')[0] + '色'
-                        all_color.append(color)
-                    except:
-                        pass
-                #print('color done!!')
-
-                # 商品價格
-                price = get_HTML(content_url).xpath("//td[@class='prodinfo-mobile-cost-no']/text()")
-                price = price[0].strip()
-                #print('price done!!')
-                # 商品ID
-
-                id = get_HTML(content_url).xpath("//font[@class='sku prod_GDID']/text()")
-
-                title_id = 'trp' + str(id[0])
-                #print('title_id done!!')
-                # 內文 Details
-                details = []
-                contents = get_HTML(content_url).xpath("//div[@class='detail-one product-list__box collapse show']//text()")
-                for content in contents:
-                    if content.strip() == '':
-                        pass
-                    elif '品牌故事' in content.strip():
-                        break
-                    elif '注意事項' in content.strip():
-                        break
-                    else:
-                        details.append(content.strip())
-                #print('details done!!')
+                html = get_HTML(content_url)
+                title_name = get_title_name(html)
+                img_list = get_imgList(html)
+                size = get_size(html)
+                all_color = get_color(html)
+                price = get_price(html)
+                id = get_id(html)
+                title_id = 'trp' + str(id)
+                details = get_details(html)
+                
                 trplus_json = {'id': title_id,
-                               # "type": title_type,
                                'title': title_name,
-                               "Product number": id[0],
+                               "Product number": id,
                                'color': all_color,
                                "jpg": img_list,
-                               # "summary": title_summary,
                                'price': price,
                                'url': content_url,
                                'Product Information': details,
                                'size': size
                                }
-
-                #print(trplus_json)
                 # 寫入json
-                try:
-                    with open(folder + '/{}.json'.format(title_id), 'w', encoding='utf-8') as f:
-                        json.dump(trplus_json, f, ensure_ascii=False)
-                        print('done!')
-                except FileNotFoundError:
-                    with open(folder + '/{}.json'.format(title_id.replace('/', '-')), 'w', encoding='utf-8') as f:
-                        json.dump(trplus_json, f, ensure_ascii=False)
-                        print('done!')
-                except:
-                    pass
-
+                try_write_to_json(trplus_json)
             except IndexError:
                 print('此頁面不存在')
                 pass
-
             print("-----------------------")
         print('page:', page, 'len:', len(links), 'finish!!!!')
         page = page + 1
-
         print("=======================================")
         if page == 120:
             break
