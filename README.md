@@ -1,6 +1,8 @@
 # my_crawler
 
 xpath:  [速查表](https://www.itread01.com/content/1547103070.html)
+xpath:  [速查表](http://caibaojian.com/scb/xpath.html)
+
 ```js
 取出所有元素(包含節點、屬性跟內容)
 "//*"
