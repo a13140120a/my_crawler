@@ -1,7 +1,40 @@
 # my_crawler
 
-xpath:  [速查表](https://www.itread01.com/content/1547103070.html)
+xpath:  [速查表](https://www.itread01.com/content/1547103070.html)  
 xpath:  [速查表](http://caibaojian.com/scb/xpath.html)
+
+範例：
+```python
+import requests
+import pprint
+from lxml import etree
+
+if __name__ == '__main__':
+    header = {}
+
+    if True:
+        header["X-Requested-With"] = "XMLHttpRequest"
+
+    session = requests.session()
+    res_get = session.get('http://localhost', headers=header)
+    # pprint.pprint(res_get.cookies.get_dict())
+    html = etree.HTML(res_get.text)
+    token = html.xpath('/html/head/meta[@name="csrf-token"]/@content')[0]
+    print(token)
+
+    json_body = {
+        "email": "admin@example.com",
+        "password": "admin123",
+        "_token": token
+    }
+
+    res_post = session.post('http://localhost/admin/login', headers=header, json=json_body)
+
+    res_quote = session.get('http://localhost/admin/quotes', headers=header)
+
+    with open('result.html', 'w', encoding='utf-8') as f:
+        f.write(res_quote.text)
+```
 
 ```js
 取出所有元素(包含節點、屬性跟內容)
