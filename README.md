@@ -34,6 +34,11 @@ if __name__ == '__main__':
 
     with open('result.html', 'w', encoding='utf-8') as f:
         f.write(res_quote.text)
+        
+    # 從當前節點繼續取其他節點
+    target1 = html.xpath('...')
+    # 前面加一個點表示當前節點
+    target2 = target1.xpath('./a[@class="example"]')
 ```
 
 ```js
